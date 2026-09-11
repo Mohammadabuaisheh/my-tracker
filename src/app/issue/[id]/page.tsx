@@ -1,16 +1,14 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { getIssueById } from "@/db/queries/issues";
+import { getIssueById, getIssueActivities } from "@/db/queries/issues";
 import { IssueDetailView } from "@/components/features/issues/issue-detail-view";
-import { buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function StandaloneIssuePage({ params }: Props) {
+export default async function IssuePage({ params }: Props) {
   const { id } = await params;
   const issue = await getIssueById(id);
 
@@ -18,21 +16,20 @@ export default async function StandaloneIssuePage({ params }: Props) {
     notFound();
   }
 
+  const activities = await getIssueActivities(id);
+
   return (
-    <div className="max-w-2xl mx-auto py-6 space-y-4">
+    <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
       <Link
         href="/"
-        className={cn(
-          buttonVariants({ variant: "ghost", size: "sm" }),
-          "h-8 px-2 text-xs -ml-2 gap-1.5 inline-flex"
-        )}
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Back to issues
+        <span>Back to Board</span>
       </Link>
 
-      <div className="rounded-lg border border-border/80 bg-card p-6 shadow-xs">
-        <IssueDetailView issue={issue as any} isModal={false} />
+      <div className="rounded-lg border border-border/60 bg-card p-6 shadow-xs">
+        <IssueDetailView issue={issue} activities={activities} />
       </div>
     </div>
   );

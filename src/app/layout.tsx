@@ -28,8 +28,9 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="dark"
           forcedTheme="dark"
+          enableColorScheme={false}
           disableTransitionOnChange
-        >
+          >
           <NuqsAdapter>
             <div className="flex h-screen w-screen overflow-hidden">
               <Sidebar />

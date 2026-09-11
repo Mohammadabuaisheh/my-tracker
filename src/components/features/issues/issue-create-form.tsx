@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createIssueFormAction, type FormActionState } from "@/actions/issues";
+import { getProjects } from "@/actions/projects";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,12 @@ interface IssueCreateFormProps {
   onCancel: () => void;
 }
 
+interface ProjectOption {
+  id: string;
+  name: string;
+  identifier: string;
+}
+
 const initialState: FormActionState = {
   success: false,
 };
@@ -30,7 +37,14 @@ const initialState: FormActionState = {
 export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
   const [state, formAction, isPending] = useActionState(createIssueFormAction, initialState);
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const formRef = useRef<HTMLFormElement | null>(null);
+
+  useEffect(() => {
+    getProjects().then((data) => {
+      if (data) setProjects(data);
+    });
+  }, []);
 
   useEffect(() => {
     if (state.success) {
@@ -84,7 +98,8 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Status */}
         <div className="space-y-1">
           <label className="text-[11px] font-medium text-muted-foreground uppercase">
             Status
@@ -103,6 +118,7 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
           </Select>
         </div>
 
+        {/* Priority */}
         <div className="space-y-1">
           <label className="text-[11px] font-medium text-muted-foreground uppercase">
             Priority
@@ -121,6 +137,27 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
           </Select>
         </div>
 
+        {/* Project */}
+        <div className="space-y-1">
+          <label className="text-[11px] font-medium text-muted-foreground uppercase">
+            Project
+          </label>
+          <Select name="projectId" defaultValue="none" disabled={isPending}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Project" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none" className="text-xs">No Project</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id} className="text-xs">
+                  {p.name} ({p.identifier})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Due Date */}
         <div className="space-y-1">
           <label className="text-[11px] font-medium text-muted-foreground uppercase">
             Due Date
@@ -171,7 +208,7 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
             size="sm"
             disabled={isPending}
             onClick={onCancel}
-            className="h-8 px-3 text-xs"
+            className="h-8 px-3 text-xs cursor-pointer"
           >
             Cancel
           </Button>
@@ -179,7 +216,7 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
             type="submit"
             size="sm"
             disabled={isPending}
-            className="h-8 px-3 text-xs font-medium"
+            className="h-8 px-3 text-xs font-medium cursor-pointer"
           >
             {isPending ? (
               <>

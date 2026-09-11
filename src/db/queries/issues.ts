@@ -1,42 +1,34 @@
 import { db } from "@/db";
-import { issues } from "@/db/schema";
-import { and, inArray, asc, desc, eq } from "drizzle-orm";
-import type { IssueStatus, IssuePriority } from "@/types/issue";
+import { issues, activities } from "@/db/schema";
+import { and, eq, inArray, desc } from "drizzle-orm";
+import type { IssuePriority, IssueStatus } from "@/types/issue";
 
-export interface IssueQueryFilters {
-  search?: string;
+interface GetIssuesOptions {
   status?: IssueStatus[];
   priority?: IssuePriority[];
-  sortBy?: "position" | "createdAt" | "priority";
-  sortOrder?: "asc" | "desc";
-  excludeCompleted?: boolean;
+  projectId?: string;
 }
 
-export async function getIssues(filters: IssueQueryFilters = {}) {
+export async function getIssues(options: GetIssuesOptions = {}) {
   const conditions = [];
 
-  if (filters.status && filters.status.length > 0) {
-    conditions.push(inArray(issues.status, filters.status));
-  } else if (filters.excludeCompleted) {
-    conditions.push(inArray(issues.status, ["todo", "in-progress", "in-review"]));
+  if (options.status && options.status.length > 0) {
+    conditions.push(inArray(issues.status, options.status));
   }
 
-  if (filters.priority && filters.priority.length > 0) {
-    conditions.push(inArray(issues.priority, filters.priority));
+  if (options.priority && options.priority.length > 0) {
+    conditions.push(inArray(issues.priority, options.priority));
   }
 
-  const orderByColumn =
-    filters.sortBy === "createdAt"
-      ? filters.sortOrder === "desc"
-        ? desc(issues.createdAt)
-        : asc(issues.createdAt)
-      : asc(issues.position);
+  if (options.projectId) {
+    conditions.push(eq(issues.projectId, options.projectId));
+  }
 
   return await db
     .select()
     .from(issues)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(orderByColumn);
+    .orderBy(issues.position);
 }
 
 export async function getIssueById(id: string) {
@@ -47,4 +39,12 @@ export async function getIssueById(id: string) {
     .limit(1);
 
   return issue ?? null;
+}
+
+export async function getIssueActivities(issueId: string) {
+  return await db
+    .select()
+    .from(activities)
+    .where(eq(activities.issueId, issueId))
+    .orderBy(desc(activities.createdAt));
 }

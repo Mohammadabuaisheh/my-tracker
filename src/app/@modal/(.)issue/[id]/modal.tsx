@@ -3,19 +3,25 @@
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { IssueDetailView } from "@/components/features/issues/issue-detail-view";
-import type { OptimisticIssue } from "@/hooks/use-optimistic-issues";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import type { Issue, Activity } from "@/db/schema";
 
-export function IssueDetailModal({ issue }: { issue: OptimisticIssue }) {
+interface IssueDetailModalProps {
+  issue: Issue;
+  activities?: Activity[];
+}
+
+export function IssueDetailModal({ issue, activities = [] }: IssueDetailModalProps) {
   const router = useRouter();
 
   return (
-    <Dialog open onOpenChange={(isOpen) => !isOpen && router.back()}>
-      <DialogContent className="sm:max-w-[640px] p-6 max-h-[85vh] overflow-y-auto">
-        <VisuallyHidden>
-          <DialogTitle>Issue Details</DialogTitle>
-        </VisuallyHidden>
-        <IssueDetailView issue={issue} isModal />
+    <Dialog open onOpenChange={(open) => !open && router.back()}>
+      <DialogContent className="sm:max-w-[560px]">
+        <DialogTitle className="sr-only">Issue Details</DialogTitle>
+        <IssueDetailView
+          issue={issue}
+          activities={activities}
+          onClose={() => router.back()}
+        />
       </DialogContent>
     </Dialog>
   );

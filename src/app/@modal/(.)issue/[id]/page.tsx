@@ -1,5 +1,6 @@
+// Inside src/app/@modal/(.)issue/[id]/page.tsx
 import { notFound } from "next/navigation";
-import { getIssueById } from "@/db/queries/issues";
+import { getIssueById, getIssueActivities } from "@/db/queries/issues";
 import { IssueDetailModal } from "./modal";
 
 interface Props {
@@ -10,9 +11,9 @@ export default async function InterceptedIssuePage({ params }: Props) {
   const { id } = await params;
   const issue = await getIssueById(id);
 
-  if (!issue) {
-    notFound();
-  }
+  if (!issue) notFound();
 
-  return <IssueDetailModal issue={issue as any} />;
+  const activities = await getIssueActivities(id);
+
+  return <IssueDetailModal issue={issue} activities={activities} />;
 }

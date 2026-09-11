@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { projects, issues } from "@/db/schema";
 import { createProjectSchema, type CreateProjectInput } from "@/types/project";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function createProject(rawInput: CreateProjectInput) {
@@ -22,6 +23,35 @@ export async function createProject(rawInput: CreateProjectInput) {
   } catch (error) {
     console.error("Failed to create project:", error);
     return { success: false, error: "Identifier must be unique." };
+  }
+}
+
+export async function deleteProject(id: string) {
+  try {
+    // Safely unlink issues from this project before deleting
+    await db
+      .update(issues)
+      .set({ projectId: null, updatedAt: new Date() })
+      .where(eq(issues.projectId, id));
+
+    await db.delete(projects).where(eq(projects.id, id));
+
+    revalidatePath("/projects");
+    revalidatePath("/");
+    revalidatePath("/backlog");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete project:", error);
+    return { success: false, error: "Failed to delete project" };
+  }
+}
+
+export async function getProjects() {
+  try {
+    return await db.select().from(projects).orderBy(projects.createdAt);
+  } catch (error) {
+    console.error("Failed to fetch projects:", error);
+    return [];
   }
 }
 
