@@ -1,45 +1,43 @@
 import type { Metadata } from "next";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { Sidebar } from "@/components/features/navigation/sidebar";
-import { MobileNav } from "@/components/features/navigation/mobile-nav";
-import { CommandPalette } from "@/components/features/search/command-palette";
-import { getIssues } from "@/db/queries/issues";
+import { Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Sidebar } from "@/components/features/navigation/sidebar";
+import { CommandPalette } from "@/components/features/search/command-palette";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "My Tracker",
-  description: "Personal issue and task tracker",
+  description: "High-performance local task tracker",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
   modal,
 }: Readonly<{
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
-  const allIssues = await getIssues();
-
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="antialiased flex h-screen overflow-hidden bg-background text-foreground">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${inter.className} bg-background text-foreground antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          forcedTheme="dark"
+          disableTransitionOnChange
+        >
           <NuqsAdapter>
-            <Sidebar />
-
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-              <MobileNav />
-
-              <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                {children}
-              </main>
+            <div className="flex h-screen w-screen overflow-hidden">
+              <Sidebar />
+              <main className="flex-1 overflow-y-auto p-6">{children}</main>
             </div>
-
             {modal}
-            <CommandPalette issues={allIssues as any} />
-            <Toaster position="bottom-right" richColors />
+            <CommandPalette />
+            <Toaster position="bottom-right" />
           </NuqsAdapter>
         </ThemeProvider>
       </body>

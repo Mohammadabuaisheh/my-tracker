@@ -2,77 +2,119 @@
 
 import { db } from "@/db";
 import { issues } from "@/db/schema";
-import {
-  createIssueSchema,
-  updateIssueSchema,
-  CreateIssueInput,
-  UpdateIssueInput,
-} from "@/types/issue";
-import { getLexicographicalIndex } from "@/lib/fractional-index";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { IssueStatus, IssuePriority } from "@/types/issue";
 
-export async function createIssue(rawInput: CreateIssueInput) {
-  const result = createIssueSchema.safeParse(rawInput);
-  if (!result.success) {
-    return {
-      success: false,
-      error: result.error.issues[0]?.message ?? "Invalid input",
-    };
+export interface FormActionState {
+  success: boolean;
+  error?: string;
+}
+
+export async function createIssueFormAction(
+  _prevState: FormActionState,
+  formData: FormData
+): Promise<FormActionState> {
+  const title = (formData.get("title") as string)?.trim();
+  const description = (formData.get("description") as string)?.trim() || null;
+  const status = (formData.get("status") as IssueStatus) || "todo";
+  const priority = (formData.get("priority") as IssuePriority) || "no-priority";
+  const dueDateRaw = formData.get("dueDate") as string;
+  const dueDate = dueDateRaw ? new Date(dueDateRaw) : null;
+
+  if (!title) {
+    return { success: false, error: "Title is required" };
   }
 
-  const { title, description, status, priority, projectId, dueDate, prevPosition, nextPosition } =
-    result.data;
-  const position = getLexicographicalIndex(prevPosition ?? null, nextPosition ?? null);
-
   try {
-    const [inserted] = await db
-      .insert(issues)
-      .values({
-        title,
-        description: description || null,
-        status,
-        priority,
-        position,
-        projectId: projectId || null,
-        dueDate: dueDate || null,
-      })
-      .returning();
+    const existingIssues = await db
+      .select({ position: issues.position })
+      .from(issues)
+      .where(eq(issues.status, status));
+
+    const position =
+      existingIssues.length > 0
+        ? existingIssues[existingIssues.length - 1].position + "m"
+        : "m";
+
+    await db.insert(issues).values({
+      title,
+      description,
+      status,
+      priority,
+      position,
+      dueDate,
+    });
 
     revalidatePath("/");
-    revalidatePath("/backlog");
-    return { success: true, data: inserted };
+    return { success: true };
   } catch (error) {
     console.error("Failed to create issue:", error);
-    return { success: false, error: "Database error: Failed to create issue." };
+    return { success: false, error: "Database error creating issue" };
   }
 }
 
-export async function updateIssue(id: string, rawInput: UpdateIssueInput) {
-  const result = updateIssueSchema.safeParse(rawInput);
-  if (!result.success) {
-    return {
-      success: false,
-      error: result.error.issues[0]?.message ?? "Invalid input",
-    };
-  }
-
+export async function updateIssue(
+  id: string,
+  data: Partial<{
+    title: string;
+    description: string | null;
+    status: IssueStatus;
+    priority: IssuePriority;
+    dueDate: Date | string | null;
+    projectId: string | null;
+    position: string;
+  }>
+) {
   try {
-    const [updated] = await db
+    const sanitizedData = {
+      ...data,
+      dueDate: data.dueDate ? new Date(data.dueDate) : data.dueDate === null ? null : undefined,
+      updatedAt: new Date(),
+    };
+
+    // Remove undefined properties before updating
+    Object.keys(sanitizedData).forEach(
+      (key) =>
+        sanitizedData[key as keyof typeof sanitizedData] === undefined &&
+        delete sanitizedData[key as keyof typeof sanitizedData]
+    );
+
+    await db
       .update(issues)
-      .set({
-        ...result.data,
-        updatedAt: new Date(),
-      })
-      .where(eq(issues.id, id))
-      .returning();
+      .set(sanitizedData)
+      .where(eq(issues.id, id));
 
     revalidatePath("/");
-    revalidatePath("/backlog");
-    return { success: true, data: updated };
+    revalidatePath(`/issue/${id}`);
+    return { success: true };
   } catch (error) {
     console.error("Failed to update issue:", error);
-    return { success: false, error: "Database error: Failed to update issue." };
+    return { success: false, error: "Failed to update issue" };
+  }
+}
+
+export async function updateIssueStatus(
+  id: string,
+  status: IssueStatus,
+  position: string
+) {
+  try {
+    await db
+      .update(issues)
+      .set({
+        status,
+        position,
+        updatedAt: new Date(),
+      })
+      .where(eq(issues.id, id));
+
+    revalidatePath("/");
+    revalidatePath(`/issue/${id}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update issue status:", error);
+    return { success: false, error: "Failed to update issue status" };
   }
 }
 
@@ -80,45 +122,9 @@ export async function deleteIssue(id: string) {
   try {
     await db.delete(issues).where(eq(issues.id, id));
     revalidatePath("/");
-    revalidatePath("/backlog");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete issue:", error);
-    return { success: false, error: "Database error: Failed to delete issue." };
+    return { success: false, error: "Failed to delete issue" };
   }
-}
-
-export interface FormActionState {
-  success: boolean;
-  error?: string;
-  timestamp?: number;
-}
-
-export async function createIssueFormAction(
-  _prevState: FormActionState,
-  formData: FormData
-): Promise<FormActionState> {
-  const dueDateRaw = formData.get("dueDate") as string;
-  const rawInput = {
-    title: formData.get("title") as string,
-    description: (formData.get("description") as string) || undefined,
-    status: (formData.get("status") as any) || "todo",
-    priority: (formData.get("priority") as any) || "no-priority",
-    dueDate: dueDateRaw ? new Date(dueDateRaw) : null,
-  };
-
-  const result = await createIssue(rawInput);
-
-  if (!result.success) {
-    return {
-      success: false,
-      error: result.error,
-      timestamp: Date.now(),
-    };
-  }
-
-  return {
-    success: true,
-    timestamp: Date.now(),
-  };
 }

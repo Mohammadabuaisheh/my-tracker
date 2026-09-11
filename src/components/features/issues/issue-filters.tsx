@@ -4,6 +4,7 @@ import { useQueryStates } from "nuqs";
 import { issueFiltersParsers, priorityEnumValues, statusEnumValues } from "@/lib/search-params";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { IssuePriority, IssueStatus } from "@/types/issue";
 
 export function IssueFilters() {
@@ -44,9 +45,14 @@ export function IssueFilters() {
           return (
             <Button
               key={p}
-              variant={isActive ? "secondary" : "ghost"}
+              variant={isActive ? "default" : "ghost"}
               size="sm"
-              className="h-7 px-2 text-xs capitalize"
+              className={cn(
+                "h-7 px-2 text-xs capitalize cursor-pointer transition-colors border",
+                isActive
+                  ? "bg-red-600 text-white hover:bg-red-700 hover:text-white border-red-600 shadow-xs"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
               aria-pressed={isActive}
               onClick={() => togglePriority(p)}
             >
@@ -65,9 +71,14 @@ export function IssueFilters() {
           return (
             <Button
               key={s}
-              variant={isActive ? "secondary" : "ghost"}
+              variant={isActive ? "default" : "ghost"}
               size="sm"
-              className="h-7 px-2 text-xs capitalize"
+              className={cn(
+                "h-7 px-2 text-xs capitalize cursor-pointer transition-colors border",
+                isActive
+                  ? "bg-red-600 text-white hover:bg-red-700 hover:text-white border-red-600 shadow-xs"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
               aria-pressed={isActive}
               onClick={() => toggleStatus(s)}
             >
@@ -81,7 +92,7 @@ export function IssueFilters() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground ml-auto"
+          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground ml-auto cursor-pointer"
           onClick={() => setFilters({ priority: [], status: [] })}
         >
           Reset

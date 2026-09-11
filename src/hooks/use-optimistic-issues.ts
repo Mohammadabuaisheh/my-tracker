@@ -6,57 +6,54 @@ import type { IssueStatus, IssuePriority } from "@/types/issue";
 export interface OptimisticIssue {
   id: string;
   title: string;
-  description: string | null;
+  description?: string | null;
   status: IssueStatus;
   priority: IssuePriority;
   position: string;
-  projectId: string | null;
-  dueDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  projectId?: string | null;
+  dueDate?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
-export type IssueOptimisticAction =
-  | { type: "create"; payload: OptimisticIssue }
-  | { type: "update"; payload: Partial<OptimisticIssue> & { id: string } }
-  | { type: "move"; payload: { id: string; status: IssueStatus; position: string } }
-  | { type: "delete"; payload: { id: string } };
+export type OptimisticAction =
+  | {
+      type: "MOVE_CARD";
+      issueId: string;
+      newStatus: IssueStatus;
+      newPosition: string;
+    }
+  | {
+      type: "UPDATE_ISSUE";
+      issue: Partial<OptimisticIssue> & { id: string };
+    }
+  | {
+      type: "DELETE_ISSUE";
+      issueId: string;
+    };
 
 export function useOptimisticIssues(initialIssues: OptimisticIssue[]) {
-  const [optimisticIssues, dispatchOptimistic] = useOptimistic(
+  const [optimisticIssues, setOptimisticIssues] = useOptimistic(
     initialIssues,
-    (current, action: IssueOptimisticAction) => {
+    (state: OptimisticIssue[], action: OptimisticAction) => {
       switch (action.type) {
-        case "create":
-          return [...current, action.payload];
-
-        case "update":
-          return current.map((issue) =>
-            issue.id === action.payload.id
-              ? { ...issue, ...action.payload, updatedAt: new Date() }
+        case "MOVE_CARD":
+          return state.map((issue) =>
+            issue.id === action.issueId
+              ? { ...issue, status: action.newStatus, position: action.newPosition }
               : issue
           );
-
-        case "move":
-          return current.map((issue) =>
-            issue.id === action.payload.id
-              ? {
-                  ...issue,
-                  status: action.payload.status,
-                  position: action.payload.position,
-                  updatedAt: new Date(),
-                }
-              : issue
+        case "UPDATE_ISSUE":
+          return state.map((issue) =>
+            issue.id === action.issue.id ? { ...issue, ...action.issue } : issue
           );
-
-        case "delete":
-          return current.filter((issue) => issue.id !== action.payload.id);
-
+        case "DELETE_ISSUE":
+          return state.filter((issue) => issue.id !== action.issueId);
         default:
-          return current;
+          return state;
       }
     }
   );
 
-  return { optimisticIssues, dispatchOptimistic };
+  return [optimisticIssues, setOptimisticIssues] as const;
 }

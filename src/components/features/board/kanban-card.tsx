@@ -1,6 +1,5 @@
 "use client";
-import { formatDueDate } from "@/lib/dates";
-import { Calendar } from "lucide-react";
+
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -16,14 +15,23 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatDueDate } from "@/lib/dates";
 import type { OptimisticIssue } from "@/hooks/use-optimistic-issues";
 import type { IssueStatus } from "@/types/issue";
-import { AlertCircle, ArrowUp, ArrowRight, ArrowDown, MoreHorizontal } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowUp,
+  ArrowRight,
+  ArrowDown,
+  MoreHorizontal,
+  Calendar,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const priorityConfig = {
@@ -35,6 +43,7 @@ const priorityConfig = {
 };
 
 const ORDERED_COLUMNS: { status: IssueStatus; label: string }[] = [
+  { status: "backlog", label: "Backlog" },
   { status: "todo", label: "To Do" },
   { status: "in-progress", label: "In Progress" },
   { status: "in-review", label: "In Review" },
@@ -139,18 +148,20 @@ export function KanbanCard({ issue, onMoveCard }: KanbanCardProps) {
               <MoreHorizontal className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuLabel className="text-xs">Move to...</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {ORDERED_COLUMNS.map((col) => (
-                <DropdownMenuItem
-                  key={col.status}
-                  disabled={col.status === issue.status}
-                  onClick={() => onMoveCard?.(issue, col.status)}
-                  className="text-xs"
-                >
-                  {col.label}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="text-xs">Move to...</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {ORDERED_COLUMNS.map((col) => (
+                  <DropdownMenuItem
+                    key={col.status}
+                    disabled={col.status === issue.status}
+                    onClick={() => onMoveCard?.(issue, col.status)}
+                    className="text-xs cursor-pointer"
+                  >
+                    {col.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -169,28 +180,28 @@ export function KanbanCard({ issue, onMoveCard }: KanbanCardProps) {
       )}
 
       <div className="flex items-center justify-between pt-1 text-[10px] text-muted-foreground/70">
-  <span className="tabular-nums">
-    {new Date(issue.createdAt).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-    })}
-  </span>
+        <span className="tabular-nums">
+          {new Date(issue.createdAt).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
 
-  {(issue as any).dueDate && (() => {
-    const { label, isOverdue } = formatDueDate((issue as any).dueDate);
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 font-medium tabular-nums",
-          isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
-        )}
-      >
-        <Calendar className="h-3 w-3" />
-        {label}
-      </span>
-    );
-  })()}
-</div>
+        {(issue as any).dueDate && (() => {
+          const { label, isOverdue } = formatDueDate((issue as any).dueDate);
+          return (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 font-medium tabular-nums",
+                isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
+              )}
+            >
+              <Calendar className="h-3 w-3" />
+              {label}
+            </span>
+          );
+        })()}
+      </div>
     </div>
   );
 }

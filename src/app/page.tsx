@@ -17,7 +17,6 @@ export default async function ActivePage({ searchParams }: PageProps) {
   const issues = await getIssues({
     status: parsedParams.status.length > 0 ? (parsedParams.status as any) : undefined,
     priority: parsedParams.priority.length > 0 ? (parsedParams.priority as any) : undefined,
-    excludeCompleted: parsedParams.status.length === 0,
   });
 
   return (

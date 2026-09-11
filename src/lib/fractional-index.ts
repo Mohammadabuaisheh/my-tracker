@@ -1,20 +1,42 @@
-import { generateKeyBetween } from "fractional-indexing";
-
-/**
- * Generates a lexicographical string that sorts exactly between `prev` and `next`.
- * - If both are null, generates the first item string.
- * - If `prev` is null, generates a string before `next`.
- * - If `next` is null, generates a string after `prev`.
- */
-export function getLexicographicalIndex(
-  prev: string | null = null,
-  next: string | null = null
+export function generatePositionBetween(
+  before: string | null | undefined,
+  after: string | null | undefined
 ): string {
-  try {
-    return generateKeyBetween(prev, next);
-  } catch (error) {
-    console.error("Error generating fractional index:", error);
-    // Fallback to prevent app crashes in edge cases
-    return generateKeyBetween(null, null);
+  if (!before && !after) return "m";
+
+  if (!before && after) {
+    const charCode = after.charCodeAt(0);
+    if (charCode > 97) {
+      return String.fromCharCode(Math.floor((97 + charCode) / 2));
+    }
+    return "a" + after;
   }
+
+  if (before && !after) {
+    const charCode = before.charCodeAt(before.length - 1);
+    if (charCode < 122) {
+      return before.slice(0, -1) + String.fromCharCode(Math.floor((charCode + 122) / 2));
+    }
+    return before + "m";
+  }
+
+  const b = before!;
+  const a = after!;
+  let i = 0;
+
+  while (i < b.length && i < a.length && b[i] === a[i]) {
+    i++;
+  }
+
+  const bChar = i < b.length ? b.charCodeAt(i) : 96;
+  const aChar = i < a.length ? a.charCodeAt(i) : 123;
+
+  if (aChar - bChar > 1) {
+    const mid = Math.floor((bChar + aChar) / 2);
+    return b.slice(0, i) + String.fromCharCode(mid);
+  }
+
+  return b + "m";
 }
+
+export const generateKeyBetween = generatePositionBetween;

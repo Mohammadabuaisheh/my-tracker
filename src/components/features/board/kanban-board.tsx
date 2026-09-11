@@ -1,152 +1,211 @@
 "use client";
 
-import { useEffect, useMemo, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
-import { KanbanColumn } from "./kanban-column";
-import { LiveRegion } from "@/components/ui/live-region";
-import { useBoardAnnouncer } from "@/hooks/use-board-announcer";
+import { KanbanColumn } from "@/components/features/board/kanban-column";
 import { useOptimisticIssues, type OptimisticIssue } from "@/hooks/use-optimistic-issues";
-import { updateIssue } from "@/actions/issues";
-import { getLexicographicalIndex } from "@/lib/fractional-index";
-import { toast } from "sonner";
+import { updateIssueStatus } from "@/actions/issues";
+import { generatePositionBetween } from "@/lib/fractional-index";
+import { useBoardAnnouncer } from "@/hooks/use-board-announcer";
+import { LiveRegion } from "@/components/ui/live-region";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { IssueStatus } from "@/types/issue";
 
-const ACTIVE_COLUMNS: { status: IssueStatus; title: string }[] = [
-  { status: "todo", title: "To Do" },
-  { status: "in-progress", title: "In Progress" },
-  { status: "in-review", title: "In Review" },
-  { status: "done", title: "Done" },
+const BASE_COLUMNS: { id: IssueStatus; title: string }[] = [
+  { id: "backlog", title: "Backlog" },
+  { id: "todo", title: "To Do" },
+  { id: "in-progress", title: "In Progress" },
+  { id: "in-review", title: "In Review" },
 ];
 
-export function KanbanBoard({ issues: initialIssues }: { issues: OptimisticIssue[] }) {
-  const { optimisticIssues, dispatchOptimistic } = useOptimisticIssues(initialIssues);
-  const { announcement, announce } = useBoardAnnouncer();
+const DONE_COLUMN: { id: IssueStatus; title: string } = {
+  id: "done",
+  title: "Done",
+};
+
+interface KanbanBoardProps {
+  issues: OptimisticIssue[];
+}
+
+export function KanbanBoard({ issues }: KanbanBoardProps) {
+  const [optimisticIssues, setOptimisticIssues] = useOptimisticIssues(issues);
   const [, startTransition] = useTransition();
+  const { announcement, announce } = useBoardAnnouncer();
+  const [isClient, setIsClient] = useState(false);
+  const [showDone, setShowDone] = useState(false);
 
-  const groupedIssues = useMemo(() => {
-    const map: Record<IssueStatus, OptimisticIssue[]> = {
-      backlog: [],
-      todo: [],
-      "in-progress": [],
-      "in-review": [],
-      done: [],
-    };
+  const activeColumns = showDone ? [...BASE_COLUMNS, DONE_COLUMN] : BASE_COLUMNS;
+  const doneCount = optimisticIssues.filter((i) => i.status === "done").length;
 
-    for (const issue of optimisticIssues) {
-      if (map[issue.status]) {
-        map[issue.status].push(issue);
-      }
-    }
-
-    for (const key of Object.keys(map) as IssueStatus[]) {
-      map[key].sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0));
-    }
-
-    return map;
-  }, [optimisticIssues]);
-
-  const handleMoveCard = (issue: OptimisticIssue, targetStatus: IssueStatus, targetPosition?: string) => {
-    let position = targetPosition;
-
-    if (!position) {
-      const colCards = groupedIssues[targetStatus] || [];
-      const lastCard = colCards[colCards.length - 1];
-      position = getLexicographicalIndex(lastCard ? lastCard.position : null, null);
-    }
-
-    startTransition(async () => {
-      dispatchOptimistic({
-        type: "move",
-        payload: {
-          id: issue.id,
-          status: targetStatus,
-          position,
-        },
-      });
-
-      announce(`Moved issue ${issue.title} to ${targetStatus.replace("-", " ")}`);
-
-      const res = await updateIssue(issue.id, {
-        status: targetStatus,
-        position,
-      });
-
-      if (!res.success) {
-        toast.error("Failed to move issue: " + res.error);
-      }
-    });
-  };
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     return monitorForElements({
-      onDrop({ source, location }) {
-        const destination = location.current.dropTargets[0];
-        if (!destination) return;
+      canMonitor: ({ source }) => source.data.type === "card",
+      onDrop: ({ source, location }) => {
+        const target = location.current.dropTargets[0];
+        if (!target) return;
 
-        const sourceData = source.data as { type: string; issue: OptimisticIssue };
-        if (sourceData.type !== "card") return;
+        const sourceIssue = source.data.issue as OptimisticIssue;
+        const targetData = target.data;
 
-        const draggedIssue = sourceData.issue;
-        const destData = destination.data as {
-          type: string;
-          status?: IssueStatus;
-          issue?: OptimisticIssue;
-        };
+        // Dropped directly on a column
+        if (targetData.type === "column") {
+          const targetStatus = targetData.status as IssueStatus;
+          if (sourceIssue.status === targetStatus) return;
 
-        let targetStatus: IssueStatus = draggedIssue.status;
-        let targetPosition: string = draggedIssue.position;
-
-        if (destData.type === "column" && destData.status) {
-          targetStatus = destData.status;
-          const colCards = groupedIssues[targetStatus];
-          const lastCard = colCards[colCards.length - 1];
-          targetPosition = getLexicographicalIndex(lastCard ? lastCard.position : null, null);
-        } else if (destData.type === "card" && destData.issue) {
-          const targetCard = destData.issue;
-          targetStatus = targetCard.status;
-
-          const closestEdge = extractClosestEdge(destination.data);
-          const colCards = groupedIssues[targetStatus].filter((c) => c.id !== draggedIssue.id);
-          const targetIndex = colCards.findIndex((c) => c.id === targetCard.id);
-
-          if (closestEdge === "top") {
-            const prevCard = colCards[targetIndex - 1];
-            targetPosition = getLexicographicalIndex(
-              prevCard ? prevCard.position : null,
-              targetCard.position
+          const columnCards = optimisticIssues
+            .filter((i) => i.status === targetStatus)
+            .sort((a: OptimisticIssue, b: OptimisticIssue) =>
+              (a.position ?? "").localeCompare(b.position ?? "")
             );
-          } else {
-            const nextCard = colCards[targetIndex + 1];
-            targetPosition = getLexicographicalIndex(
-              targetCard.position,
-              nextCard ? nextCard.position : null
-            );
-          }
-        }
 
-        if (targetStatus === draggedIssue.status && targetPosition === draggedIssue.position) {
+          const lastCard = columnCards[columnCards.length - 1];
+          const newPos = generatePositionBetween(lastCard?.position ?? null, null);
+
+          startTransition(async () => {
+            setOptimisticIssues({
+              type: "MOVE_CARD",
+              issueId: sourceIssue.id,
+              newStatus: targetStatus,
+              newPosition: newPos,
+            });
+
+            announce(`Moved ${sourceIssue.title} to ${targetStatus}`);
+            await updateIssueStatus(sourceIssue.id, targetStatus, newPos);
+          });
           return;
         }
 
-        handleMoveCard(draggedIssue, targetStatus, targetPosition);
+        // Dropped on another card
+        if (targetData.type === "card") {
+          const targetIssue = targetData.issue as OptimisticIssue;
+          const targetStatus = targetIssue.status;
+          const edge = extractClosestEdge(targetData);
+
+          const columnCards = optimisticIssues
+            .filter((i) => i.status === targetStatus && i.id !== sourceIssue.id)
+            .sort((a: OptimisticIssue, b: OptimisticIssue) =>
+              (a.position ?? "").localeCompare(b.position ?? "")
+            );
+
+          const targetIndex = columnCards.findIndex((i) => i.id === targetIssue.id);
+          if (targetIndex === -1) return;
+
+          let beforePos: string | null = null;
+          let afterPos: string | null = null;
+
+          if (edge === "top") {
+            beforePos = targetIndex > 0 ? columnCards[targetIndex - 1].position : null;
+            afterPos = targetIssue.position;
+          } else {
+            beforePos = targetIssue.position;
+            afterPos = targetIndex < columnCards.length - 1 ? columnCards[targetIndex + 1].position : null;
+          }
+
+          const newPos = generatePositionBetween(beforePos, afterPos);
+
+          startTransition(async () => {
+            setOptimisticIssues({
+              type: "MOVE_CARD",
+              issueId: sourceIssue.id,
+              newStatus: targetStatus,
+              newPosition: newPos,
+            });
+
+            announce(`Reordered ${sourceIssue.title}`);
+            await updateIssueStatus(sourceIssue.id, targetStatus, newPos);
+          });
+        }
       },
     });
-  }, [groupedIssues]);
+  }, [optimisticIssues, setOptimisticIssues, announce, startTransition]);
+
+  const handleMoveCard = (issue: OptimisticIssue, targetStatus: IssueStatus) => {
+    const columnCards = optimisticIssues
+      .filter((i) => i.status === targetStatus)
+      .sort((a: OptimisticIssue, b: OptimisticIssue) =>
+        (a.position ?? "").localeCompare(b.position ?? "")
+      );
+
+    const lastCard = columnCards[columnCards.length - 1];
+    const newPos = generatePositionBetween(lastCard?.position ?? null, null);
+
+    startTransition(async () => {
+      setOptimisticIssues({
+        type: "MOVE_CARD",
+        issueId: issue.id,
+        newStatus: targetStatus,
+        newPosition: newPos,
+      });
+
+      announce(`Moved ${issue.title} to ${targetStatus}`);
+      await updateIssueStatus(issue.id, targetStatus, newPos);
+    });
+  };
+
+  if (!isClient) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 h-full pb-4">
+        {BASE_COLUMNS.map((col) => (
+          <div key={col.id} className="h-full rounded-lg border border-border/40 bg-muted/20" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
       <LiveRegion message={announcement} />
-      <div className="flex h-full w-full gap-4 overflow-x-auto pb-4 pt-2">
-        {ACTIVE_COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col.status}
-            status={col.status}
-            title={col.title}
-            issues={groupedIssues[col.status] || []}
-            onMoveCard={handleMoveCard}
-          />
-        ))}
+
+      <div className="flex items-center justify-end pb-2">
+        <Button
+          type="button"
+          variant={showDone ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setShowDone(!showDone)}
+          className="h-7 px-2.5 text-xs gap-1.5 cursor-pointer"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <span>{showDone ? "Hide Done" : "Show Done"}</span>
+          {doneCount > 0 && (
+            <span className="ml-1 rounded-full bg-muted px-1.5 py-0.2 text-[10px] font-mono">
+              {doneCount}
+            </span>
+          )}
+        </Button>
+      </div>
+
+      <div
+        className={cn(
+          "grid gap-3 h-full pb-4 overflow-x-auto transition-all",
+          showDone
+            ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 min-w-[1000px]"
+            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4 min-w-[800px]"
+        )}
+      >
+        {activeColumns.map((col) => {
+          const colIssues = optimisticIssues
+            .filter((i) => i.status === col.id)
+            .sort((a: OptimisticIssue, b: OptimisticIssue) =>
+              (a.position ?? "").localeCompare(b.position ?? "")
+            );
+
+          return (
+            <KanbanColumn
+              key={col.id}
+              status={col.id}
+              title={col.title}
+              issues={colIssues}
+              onMoveCard={handleMoveCard}
+            />
+          );
+        })}
       </div>
     </>
   );
