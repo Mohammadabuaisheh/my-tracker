@@ -1,0 +1,7 @@
+tests/
+test-results/
+playwright-report/
+playwright.config.ts
+local.db
+local.db-journal
+*.md
