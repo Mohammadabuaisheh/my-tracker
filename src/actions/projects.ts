@@ -26,6 +26,28 @@ export async function createProject(rawInput: CreateProjectInput) {
   }
 }
 
+export async function updateProject(id: string, name: string) {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    return { success: false, error: "Project name cannot be empty." };
+  }
+
+  try {
+    const [updated] = await db
+      .update(projects)
+      .set({ name: trimmedName })
+      .where(eq(projects.id, id))
+      .returning();
+
+    revalidatePath("/projects");
+    revalidatePath("/");
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Failed to update project:", error);
+    return { success: false, error: "Failed to update project name." };
+  }
+}
+
 export async function deleteProject(id: string) {
   try {
     // Safely unlink issues from this project before deleting

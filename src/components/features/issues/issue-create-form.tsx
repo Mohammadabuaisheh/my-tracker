@@ -75,7 +75,7 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         value={date ? date.toISOString() : ""}
       />
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Input
           id="title"
           name="title"
@@ -87,7 +87,7 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         />
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Textarea
           id="description"
           name="description"
@@ -98,14 +98,15 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {/* Spaced metadata row with adequate gap and minimum trigger widths */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
         {/* Status */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             Status
           </label>
           <Select name="status" defaultValue="todo" disabled={isPending}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-8 w-full text-xs">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -119,12 +120,12 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         </div>
 
         {/* Priority */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             Priority
           </label>
           <Select name="priority" defaultValue="no-priority" disabled={isPending}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-8 w-full text-xs">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -138,12 +139,12 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         </div>
 
         {/* Project */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             Project
           </label>
           <Select name="projectId" defaultValue="none" disabled={isPending}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-8 w-full text-xs truncate">
               <SelectValue placeholder="Project" />
             </SelectTrigger>
             <SelectContent>
@@ -158,15 +159,15 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         </div>
 
         {/* Due Date */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             Due Date
           </label>
           <Popover>
             <PopoverTrigger
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "h-8 w-full justify-start text-left text-xs font-normal px-2 cursor-pointer",
+                "h-8 w-full justify-start text-left text-xs font-normal px-2.5 cursor-pointer",
                 !date && "text-muted-foreground"
               )}
             >
@@ -176,7 +177,7 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
               </span>
               {date && (
                 <X
-                  className="ml-auto h-3 w-3 hover:text-foreground"
+                  className="ml-auto h-3 w-3 hover:text-foreground shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDate(undefined);
@@ -196,7 +197,7 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-border/40">
+      <div className="flex items-center justify-between pt-3 border-t border-border/40 mt-1">
         <span className="text-[11px] text-muted-foreground">
           Press <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">⌘</kbd> + <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">Enter</kbd> to save
         </span>
