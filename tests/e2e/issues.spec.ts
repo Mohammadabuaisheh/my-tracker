@@ -52,12 +52,10 @@ test.describe("My Tracker Core Workflows", () => {
   });
 
   test("navigates to projects dashboard", async ({ page }) => {
-    await page.goto("/");
-
-    // Click Projects link in sidebar
-    await page.getByRole("link", { name: "Projects" }).click();
-    await expect(page).toHaveURL("/projects");
-    await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "New Project" })).toBeVisible();
-  });
+  await page.goto("/");
+  await page.getByRole("link", { name: "Projects" }).click();
+  await expect(page).toHaveURL("/projects");
+  await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New Project" })).toBeVisible();
+});
 });
