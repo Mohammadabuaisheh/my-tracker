@@ -98,7 +98,6 @@ export function IssueCreateForm({ onSuccess, onCancel }: IssueCreateFormProps) {
         />
       </div>
 
-      {/* Spaced metadata row with adequate gap and minimum trigger widths */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
         {/* Status */}
         <div className="flex flex-col gap-1.5">

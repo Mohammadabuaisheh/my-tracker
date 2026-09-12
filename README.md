@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# My Tracker
 
-## Getting Started
+My Tracker is a fast, URL-state-driven issue tracker and project management application built with Next.js 15. It features a Kanban board, isolated project dashboards, and URL-synchronized state designed for speed and clarity.
 
-First, run the development server:
+## Tech Stack
+- **Framework:** Next.js 15 (App Router), React 19
+- **State Management:** URL-driven via `nuqs`
+- **Database:** Turso (Cloud libSQL/SQLite)
+- **ORM:** Drizzle ORM
+- **Styling:** Tailwind CSS, shadcn/ui, `next-themes`
+- **Testing & QA:** Playwright (E2E), ESLint 9 (Native Flat Config), TypeScript
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## Quick Start
+
+### 1. Prerequisites
+- Node.js 20+
+- A free [Turso](https://turso.tech) account (required for cloud database persistence)
+
+### 2. Environment Setup
+Create a `.env.local` file in the root directory:
+```env
+TURSO_DATABASE_URL="libsql://your-database-name.turso.io"
+TURSO_AUTH_TOKEN="your-turso-auth-token"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Installation & Database Migration
+```bash
+npm install
+npm run db:push
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Available Commands
 
-## Learn More
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Starts the local development server at `localhost:3000` |
+| `npm run build` | Builds the application for production |
+| `npm run lint` | Runs native ESLint 9 checks |
+| `npm run test:e2e` | Runs Playwright end-to-end integration tests |
+| `npm run db:push` | Pushes the Drizzle schema directly to Turso |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentation Index
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Architecture](docs/ARCHITECTURE.md) — System flow, boundaries, and Next.js Server Actions design
+- [Database](docs/DATABASE.md) — Drizzle schema, entity relationships, and soft-unlink logic
+- [Backend](docs/BACKEND.md) — Server Actions reference and mutation behaviors
+- [Features](docs/FEATURES.md) — Inventory of implemented vs. future features
+- [UI & Design](docs/UI.md) — Layout guidelines, modal spacing, and loading conventions
+- [Development](docs/DEVELOPMENT.md) — Development setup, environment keys, and scripts
+- [Deployment](docs/DEPLOYMENT.md) — Vercel hosting setup and production environment configuration
+- [Testing](docs/TESTING.md) — Playwright test coverage and CI workflow
+- [Security](docs/SECURITY.md) — Current public state and security considerations
+- [Roadmap & Tech Debt](docs/ROADMAP.md) — Tracked technical debt and planned multi-tenant upgrades
+- [AI Maintainer Context](docs/AI_CONTEXT.md) — Core instructions and constraints for AI coding agents
